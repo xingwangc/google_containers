@@ -23,20 +23,47 @@ function Usage() {
 	echo "and then retag them, then push the retaged images to you private repository."
 	echo "So before execute this script, you should make sure you have the permission for"
 	echo "these 2 repos!"
-	echo "	dumpImagesToPrivateRepo.sh remoteRepo privateRepo"
+	echo "	dumpImagesToPrivateRepo.sh remoteRepo privateRepo [images]"
 	echo "		remoteRepo: the remote repository from which to pull images"
 	echo "		privateRepo: the private repository to which the images will be pushed"
+	echo "		[images]: optional parameter, do not provide this param or it is [full] will use the image"
+	echo "list defined in ${IMAGES}. Otherwise the last params will be treated as image names"
 
 }
 
+function pullImage() {
+	image_name=$1
+
+	docker pull ${image_name}
+}
+
+function tagImage() {
+	src_name=$1
+	dst_name=$2
+
+	docker tag ${src_name} ${dst_name}
+}
+
+function pushImage() {
+	image_name=$1
+
+	docker push ${image_name}
+}
 
 function main() {
-	[[ $# == 2 ]] || (Usage; return 1)
+	[[ $# -ge 2 ]] || (Usage; return 1)
 
 	remote_repo=$1
 	private_repo=$2
 
-	for image in ${IMAGES[@]}; do
+	if [[ $# == 2 ]] || [[ $3 == "full" ]]; then
+		images=${IMAGES[@]}
+	else
+		shift 2
+		images=$@
+	fi
+
+	for image in ${images}; do
 		docker pull ${remote_repo}/${image}
 		docker tag ${remote_repo}/${image} ${private_repo}/${image}
 		docker push ${private_repo}/${image}
